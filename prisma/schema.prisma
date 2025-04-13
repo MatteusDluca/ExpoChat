@@ -1,0 +1,85 @@
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+
+model Company {
+  id            String    @id @default(uuid())
+  name          String
+  cnpjOrCpf     String    @unique
+  whatsappToken String?
+  users         User[]
+  customers     Customer[]
+  chats         Chat[]
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
+
+model User {
+  id         String    @id @default(uuid())
+  name       String
+  email      String    @unique
+  password   String
+  cpf        String?
+  role       Role
+  companyId  String
+  company    Company   @relation(fields: [companyId], references: [id])
+  chats      Chat[]
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+}
+
+enum Role {
+  ADMIN
+  SUPERVISOR
+  AGENT
+}
+
+model Customer {
+  id         String    @id @default(uuid())
+  name       String
+  phone      String    @unique
+  companyId  String
+  company    Company   @relation(fields: [companyId], references: [id])
+  chats      Chat[]
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+}
+
+model Chat {
+  id         String    @id @default(uuid())
+  customerId String
+  userId     String?
+  companyId  String
+  status     ChatStatus  @default(ACTIVE)
+  messages   Message[]
+  customer   Customer    @relation(fields: [customerId], references: [id])
+  user       User?       @relation(fields: [userId], references: [id])
+  company    Company     @relation(fields: [companyId], references: [id])
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime    @updatedAt
+}
+
+enum ChatStatus {
+  ACTIVE
+  IN_PROGRESS
+  CLOSED
+}
+
+model Message {
+  id        String   @id @default(uuid())
+  chatId    String
+  fromCustomer Boolean
+  senderName   String?
+  content   String
+  read      Boolean  @default(false)
+  sentAt    DateTime @default(now())
+  chat      Chat     @relation(fields: [chatId], references: [id])
+}
