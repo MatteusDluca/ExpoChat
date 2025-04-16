@@ -2,11 +2,11 @@ import { Injectable } from '@nestjs/common';
 import { BotConfigService } from '../bot-config/bot-config.service';
 import { PrismaService } from '../prisma/prisma.service';
 import {
-    BotConfigDto,
-    BotConversationDto,
-    BotMessageDto,
-    BotMessageResponseDto,
-    BotResponseDto,
+  BotConfigDto,
+  BotConversationDto,
+  BotMessageDto,
+  BotMessageResponseDto,
+  BotResponseDto,
 } from './dto';
 
 @Injectable()
