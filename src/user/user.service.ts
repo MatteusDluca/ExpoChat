@@ -55,11 +55,20 @@ export class UserService {
   }
 
   // Método para transferir uma conversa para outro atendente
-  transferConversation(conversationId: string, newUserId: string) {
-    // Lógica para transferir a conversa
-    // Exemplo: Atualizar o atendente responsável pela conversa no banco de dados
-    console.log(
-      `Conversa ${conversationId} transferida para o usuário ${newUserId}.`,
-    );
+  async transferConversation(
+    conversationId: string,
+    newUserId: string,
+    currentUser: { role: Role },
+  ) {
+    if (![Role.ADMIN, Role.SUPERVISOR].includes(currentUser.role)) {
+      throw new ForbiddenException(
+        'Apenas administradores ou supervisores podem transferir conversas.',
+      );
+    }
+    // Atualiza o userId do chat para o novo atendente
+    return this.prisma.chat.update({
+      where: { id: conversationId },
+      data: { userId: newUserId },
+    });
   }
 }

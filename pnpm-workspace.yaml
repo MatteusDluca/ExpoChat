@@ -1,2 +1,10 @@
 onlyBuiltDependencies:
   - '@prisma/client'
+
+ignoredBuiltDependencies:
+  - '@nestjs/core'
+  - '@prisma/engines'
+  - '@swc/core'
+  - esbuild
+  - prisma
+  - protobufjs
