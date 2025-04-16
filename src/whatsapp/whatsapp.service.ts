@@ -1,15 +1,15 @@
 import { Injectable } from '@nestjs/common';
+import { BotService } from '../bot/bot.service';
+import { ChatService } from '../chat/chat.service';
+import { CustomerService } from '../customer/customer.service';
+import { MessageService } from '../message/message.service';
+import { PrismaService } from '../prisma/prisma.service';
+import { UserService } from '../user/user.service';
 import {
   connectToWhatsApp,
   getSession,
   removeSession,
 } from './baileys.provider';
-import { WASocket } from '@whiskeysockets/baileys';
-import { PrismaService } from '../prisma/prisma.service';
-import { CustomerService } from '../customer/customer.service';
-import { ChatService } from '../chat/chat.service';
-import { MessageService } from '../message/message.service';
-import { UserService } from '../user/user.service';
 
 @Injectable()
 export class WhatsappService {
@@ -19,12 +19,13 @@ export class WhatsappService {
     private readonly chatService: ChatService,
     private readonly messageService: MessageService,
     private readonly userService: UserService,
+    private readonly botService: BotService,
   ) {}
 
   // Conecta o WhatsApp da empresa e escuta mensagens recebidas
   async connect(companyId: string): Promise<{ message: string }> {
-    await connectToWhatsApp(companyId, async ({ jid, message, fromMe }) => {
-      await this.handleIncomingMessage(companyId, jid, message, fromMe);
+    await connectToWhatsApp(companyId, ({ jid, message, fromMe }) => {
+      this.handleIncomingMessage(companyId, jid, message, fromMe);
     });
 
     return { message: 'Conexão estabelecida com sucesso' };
@@ -74,17 +75,48 @@ export class WhatsappService {
     message: string,
     fromMe: boolean,
   ) {
+    if (fromMe) return; // Ignorar mensagens enviadas pelo próprio bot
+
     const phone = jid.replace('@s.whatsapp.net', '');
     const customer = await this.customerService.findOrCreate(phone, companyId);
     const chat = await this.chatService.createOrGetChat(customer.id, companyId);
 
     const senderName = customer.name ?? phone;
 
+    // Salvar a mensagem recebida
     await this.messageService.sendDetailedMessage({
       chatId: chat.id,
       content: message,
       fromCustomer: true,
       senderName,
     });
+
+    // Verificar se há um operador atendendo o chat
+    const hasOperator = !!chat.userId;
+
+    // Se não houver operador, processar com o bot
+    if (!hasOperator) {
+      try {
+        // Processar a mensagem com o bot
+        const botResponse = await this.botService.handleIncomingMessage(
+          message,
+          companyId,
+          customer.id,
+        );
+
+        // Enviar a resposta do bot ao WhatsApp
+        if (botResponse.content) {
+          await this.sendMessage(companyId, jid, botResponse.content);
+
+          // Se houver mídia, enviar também
+          if (botResponse.mediaUrl) {
+            // Aqui você pode implementar o envio de mídia
+            // await session.sendMessage(jid, { image: { url: botResponse.mediaUrl }, caption: 'Imagem' });
+          }
+        }
+      } catch (error) {
+        console.error('Erro ao processar mensagem com o bot:', error);
+      }
+    }
   }
 }

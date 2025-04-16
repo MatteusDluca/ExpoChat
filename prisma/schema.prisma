@@ -1,4 +1,3 @@
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -9,31 +8,32 @@ datasource db {
   directUrl = env("DIRECT_URL")
 }
 
-
 model Company {
-  id            String    @id @default(uuid())
-  name          String
-  cnpjOrCpf     String    @unique
-  whatsappToken String?
-  users         User[]
-  customers     Customer[]
-  chats         Chat[]
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  id              String            @id @default(uuid())
+  name            String
+  cnpjOrCpf       String            @unique
+  whatsappToken   String?
+  users           User[]
+  customers       Customer[]
+  chats           Chat[]
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+  BotConfig       BotConfig[]
+  BotConversation BotConversation[]
 }
 
 model User {
-  id         String    @id @default(uuid())
-  name       String
-  email      String    @unique
-  password   String
-  cpf        String?
-  role       Role
-  companyId  String
-  company    Company   @relation(fields: [companyId], references: [id])
-  chats      Chat[]
-  createdAt  DateTime  @default(now())
-  updatedAt  DateTime  @updatedAt
+  id        String   @id @default(uuid())
+  name      String
+  email     String   @unique
+  password  String
+  cpf       String?
+  role      Role
+  companyId String
+  company   Company  @relation(fields: [companyId], references: [id])
+  chats     Chat[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 enum Role {
@@ -43,28 +43,29 @@ enum Role {
 }
 
 model Customer {
-  id         String    @id @default(uuid())
-  name       String
-  phone      String    @unique
-  companyId  String
-  company    Company   @relation(fields: [companyId], references: [id])
-  chats      Chat[]
-  createdAt  DateTime  @default(now())
-  updatedAt  DateTime  @updatedAt
+  id              String            @id @default(uuid())
+  name            String
+  phone           String            @unique
+  companyId       String
+  company         Company           @relation(fields: [companyId], references: [id])
+  chats           Chat[]
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+  BotConversation BotConversation[]
 }
 
 model Chat {
-  id         String    @id @default(uuid())
+  id         String     @id @default(uuid())
   customerId String
   userId     String?
   companyId  String
-  status     ChatStatus  @default(ACTIVE)
+  status     ChatStatus @default(ACTIVE)
   messages   Message[]
-  customer   Customer    @relation(fields: [customerId], references: [id])
-  user       User?       @relation(fields: [userId], references: [id])
-  company    Company     @relation(fields: [companyId], references: [id])
-  createdAt  DateTime    @default(now())
-  updatedAt  DateTime    @updatedAt
+  customer   Customer   @relation(fields: [customerId], references: [id])
+  user       User?      @relation(fields: [userId], references: [id])
+  company    Company    @relation(fields: [companyId], references: [id])
+  createdAt  DateTime   @default(now())
+  updatedAt  DateTime   @updatedAt
 }
 
 enum ChatStatus {
@@ -74,12 +75,66 @@ enum ChatStatus {
 }
 
 model Message {
-  id        String   @id @default(uuid())
-  chatId    String
+  id           String   @id @default(uuid())
+  chatId       String
   fromCustomer Boolean
   senderName   String?
-  content   String
-  read      Boolean  @default(false)
-  sentAt    DateTime @default(now())
-  chat      Chat     @relation(fields: [chatId], references: [id])
+  content      String
+  read         Boolean  @default(false)
+  sentAt       DateTime @default(now())
+  chat         Chat     @relation(fields: [chatId], references: [id])
+}
+
+model BotConfig {
+  id             String        @id @default(uuid())
+  companyId      String
+  name           String
+  avatar         String?
+  welcomeMessage String
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  company        Company       @relation(fields: [companyId], references: [id])
+  responses      BotResponse[]
+
+  @@map("bot_configs")
+}
+
+model BotResponse {
+  id          String    @id @default(uuid())
+  botConfigId String
+  trigger     String // Palavra-chave ou frase que ativa esta resposta
+  response    String // Resposta do bot
+  mediaUrl    String? // URL opcional para mídia (imagem, vídeo, etc.)
+  order       Int // Ordem de prioridade da resposta
+  isActive    Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  botConfig   BotConfig @relation(fields: [botConfigId], references: [id])
+
+  @@map("bot_responses")
+}
+
+model BotConversation {
+  id         String       @id @default(uuid())
+  customerId String
+  companyId  String
+  messages   BotMessage[]
+  createdAt  DateTime     @default(now())
+  updatedAt  DateTime     @updatedAt
+  customer   Customer     @relation(fields: [customerId], references: [id])
+  company    Company      @relation(fields: [companyId], references: [id])
+
+  @@map("bot_conversations")
+}
+
+model BotMessage {
+  id             String          @id @default(uuid())
+  conversationId String
+  content        String
+  fromCustomer   Boolean
+  mediaUrl       String?
+  createdAt      DateTime        @default(now())
+  conversation   BotConversation @relation(fields: [conversationId], references: [id])
+
+  @@map("bot_messages")
 }
